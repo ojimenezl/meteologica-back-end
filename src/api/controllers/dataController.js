@@ -14,18 +14,23 @@ export async function getAll(req, res) {
 export async function getLatest(req, res) {
   try {
     const data = await fetchYamlData();
-    const { temperature } = data;
+    const { temperature, power } = data;
 
-    const values = temperature?.values || [];
-    const index = getIndexForCurrentTime(values);
-    const item = values[index];
+    const tempValues = temperature?.values || [];
+    const powerValues = power?.values || [];
 
-    const tempC = deciKelvinToCelsius(item.value);
+    const index = getIndexForCurrentTime(tempValues);
+    const tempItem = tempValues[index];
+    const powerItem = powerValues[index];
+
+    const tempC = deciKelvinToCelsius(tempItem.value);
+    const energyKWh = powerItem ? Number((parseFloat(powerItem.value) * 5 / 3600).toFixed(3)) : undefined;
 
     res.json({
-      time: item.time,
-      rawValue: item.value,
-      temperatureC: Number(tempC.toFixed(2))
+      time: tempItem.time,
+      rawValue: tempItem.value,
+      temperatureC: Number(tempC.toFixed(2)),
+      energyKWh
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -50,40 +55,38 @@ export async function getMinutes(req, res) {
 }
 
 export async function streamLatest(req, res) {
-  // Cabeceras necesarias para SSE
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
-  // Función para enviar datos cada 5 segundos
   const sendData = async () => {
     try {
       const data = await fetchYamlData();
-      const { temperature } = data;
-      const values = temperature?.values || [];
-      const index = getIndexForCurrentTime(values);
-      const item = values[index];
-      const tempC = deciKelvinToCelsius(item.value);
+      const { temperature, power } = data;
 
-      // Enviar como string JSON
+      const tempValues = temperature?.values || [];
+      const powerValues = power?.values || [];
+      const index = getIndexForCurrentTime(tempValues);
+
+      const tempItem = tempValues[index];
+      const powerItem = powerValues[index];
+
+      const tempC = deciKelvinToCelsius(tempItem.value);
+      const energyKWh = powerItem ? Number((parseFloat(powerItem.value) * 5 / 3600).toFixed(3)) : undefined;
+
       res.write(`data: ${JSON.stringify({
-        time: item.time,
-        rawValue: item.value,
-        temperatureC: Number(tempC.toFixed(2))
+        time: tempItem.time,
+        rawValue: tempItem.value,
+        temperatureC: Number(tempC.toFixed(2)),
+        energyKWh
       })}\n\n`);
     } catch (err) {
       res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
     }
   };
 
-  // Enviar inmediatamente al conectarse
   sendData();
-
-  // Intervalo de envío cada 5 segundos
   const intervalId = setInterval(sendData, 5000);
 
-  // Limpiar cuando el cliente se desconecte
-  req.on('close', () => {
-    clearInterval(intervalId);
-  });
+  req.on('close', () => clearInterval(intervalId));
 }
