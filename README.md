@@ -12,7 +12,6 @@ Backend de Meteológica, que provee datos de temperatura y energía en tiempo re
 1. Clonar el repositorio:
 ```bash
 git clone https://github.com/ojimenezl/meteologica-back-end.git
-1. Clonar el repositorio:
 ```
 2. Instalación:
 ```bash
