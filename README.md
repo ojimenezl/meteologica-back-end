@@ -18,7 +18,7 @@ git clone https://github.com/ojimenezl/meteologica-back-end.git
 ```bash
 npm install
 ```
-3. Clonar el repositorio:
+3. Ejecutar Proyecto:
 ```bash
 cd meteologica-back-end
 npm run dev    # Desarrollo con nodemon
